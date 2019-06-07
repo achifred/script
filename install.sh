@@ -12,7 +12,10 @@ initproject () {
 
         echo "creating index.js file "
         sleep 3
-        touch index.js .env .envexample
+        touch index.js 
+        touch app.js
+        touch .env 
+        touch .envexample
         if [ $? -eq 0 ]
         then
             echo "index.js file created"
@@ -24,8 +27,6 @@ initproject () {
     else
         echo 'error initializing project'
     fi
-    
-
 
     
 }
@@ -74,14 +75,8 @@ create_Folders () {
 add_dependencies () {
     echo "installing basic dependencies"
     sleep 2
-    npm install --save express
-    sleep 3
-    npm install --save body-parser
-    sleep 3
-    npm install --save dotenv
-    sleep 3
-    npm install --save-dev nodemon
-    sleep 2
+    sudo npm install --save express body-parser dotenv nodemon
+    
     echo 'installing babel dependencies'
     npm install --save @babel/runtime
     sleep 3
@@ -95,6 +90,72 @@ add_dependencies () {
      
     echo "dependencies  installed"
 
+}
+
+
+#setting babel
+
+IndexSetup () {
+    echo "setting up index.js ${PWD} "
+    sleep 8
+    
+    echo "
+       import express from 'express'
+       import bodyParser from 'body-parser'
+       
+
+        const app = express()
+
+        app.use(bodyParser.json());
+        app.use(bodyParser.urlencoded({extended:false}));
+        app.use((req,res,next)=>{
+            res.header('Access-Control-Allow-Origin', '*');
+            res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization')
+            if(req.method ==='OPTIONS'){
+                res.header('Access-Control-Allow-Methods', 'POST, PUT, GET, DELETE, PATCH');
+                return res.status(200).json({});
+
+            }
+            next();
+        })
+
+
+        app.use((req,res,next)=>{
+            const error = new Error('NOT FOUND');
+            error.status=404;
+            next(error)
+        })
+
+        app.use((error, req, res, next)=>{
+            res.status(error.status||500)
+            res.json({
+                error:{
+                    message: error.message
+                }
+            })
+        })
+            
+        export{app}
+        export default app
+    ">>${PWD}/app.js
+
+    if [ $? -eq 0 ] 
+    then 
+        echo "
+                import {} from 'dotenv/config'
+                import  {app} from './app'
+
+                app.set('port', process.env.PORT || 3000);
+
+                var server = app.listen(app.get('port'), ()=>{
+                console.log(' server listening on port ' + server.address().port);
+                });
+
+
+        ">>${PWD}/index.js
+    else
+        echo 'something went wrong'
+    fi
 }
 
 
@@ -145,6 +206,10 @@ then
         if [ $? -eq 0 ] 
         then
             folder
+
+            cd ..
+
+            IndexSetup
         else
             echo ' error creating additonal folders'
         fi
